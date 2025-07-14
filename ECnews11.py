@@ -10,6 +10,7 @@ from typing import Dict, List
 from openpyxl import Workbook
 from openpyxl.styles import Font
 import pandas as pd
+from scrapy.crawler import CrawlerProcess
 
 class ECnewsSpider(scrapy.Spider):
     name = 'ECnews11'
@@ -927,3 +928,8 @@ class ECnewsSpider(scrapy.Spider):
             filename = 'ec_news_results.xlsx'
             self.wb.save(filename)
             self.logger.info(f"Saved results to {filename}")
+
+if __name__ == "__main__":
+    process = CrawlerProcess()
+    process.crawl(ECnewsSpider)
+    process.start()
