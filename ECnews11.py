@@ -11,6 +11,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 import pandas as pd
 from scrapy.crawler import CrawlerProcess
+import re
 
 class ECnewsSpider(scrapy.Spider):
     name = 'ECnews11'
@@ -36,6 +37,7 @@ class ECnewsSpider(scrapy.Spider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Initialize Excel workbook
+        self.drug_terms = self.load_drug_terms()
         self.wb = Workbook()
         self.ws = self.wb.active
         self.ws.title = "EC News Results"
@@ -55,7 +57,6 @@ class ECnewsSpider(scrapy.Spider):
         # Track row count
         self.row_count = 1
 
-        self.drug_terms = self.load_drug_terms()
         
         # Language code to full name mapping
         self.LANGUAGE_NAMES = {
@@ -707,21 +708,16 @@ class ECnewsSpider(scrapy.Spider):
     def parse_detail_page(self, response):
         item = response.meta['item']
         
-        # Extract PDF URL if available and make it absolute
-        pdf_url = response.css('a.ecl-file__download[href*=".pdf"]::attr(href)').get()
-        if pdf_url:
-            pdf_url = urljoin(response.url, pdf_url)
-            item['PDF_URL'] = pdf_url  # ← restore this line
-            item['Article URL'] = pdf_url
-        else:
-            item['PDF_URL'] = None
-            item['Article URL'] = response.url
-    
-    # Get text content - will use PDF if available, otherwise webpage text
-        analysis_text = self.get_analysis_text(response, item['PDF_URL'])
-    
-    # Process the extracted text
+        # Add debug logging
+        self.logger.info(f"Processing: {item['Title']}")
+        self.logger.debug(f"Loaded {len(self.drug_terms)} drug terms")
+        
+        analysis_text = self.get_analysis_text(response, item.get('PDF_URL'))
+        
         if analysis_text.strip():
+            drug_names = self.extract_drug_names(analysis_text, item.get('Title'))
+            self.logger.info(f"Found drugs in '{item['Title']}': {drug_names}")
+
             item['Summary'] = self.generate_summary(analysis_text)
             item['Document_Type'] = self.classify_document_type(analysis_text)
             item['Product_Type'] = self.classify_product_type(analysis_text)
@@ -730,8 +726,6 @@ class ECnewsSpider(scrapy.Spider):
             item['Countries'] = ', '.join(mentioned_countries) if mentioned_countries else "None"
             item['Regions'] = ', '.join(self.detect_mentioned_regions(mentioned_countries)) if mentioned_countries else "None"
 
-        
-            drug_names = self.extract_drug_names(analysis_text)
             item['Drug_names'] = ', '.join(drug_names) if drug_names else "None"
         
             item['Language'] = self.detect_language(analysis_text)
@@ -757,33 +751,63 @@ class ECnewsSpider(scrapy.Spider):
         return item
 
     def load_drug_terms(self) -> set:
+        """Load drug terms from TSV with filtering"""
+        tsv_url = self.GITHUB_FILES["drug_interaction"]
+
         try:
-            df_tsv = pd.read_csv(self.GITHUB_FILES["drug_interaction"], sep="\t", encoding="ISO-8859-1")
+            df = pd.read_csv(tsv_url, sep='\t', encoding='ISO-8859-1')
+        except UnicodeDecodeError:
+            df = pd.read_csv(tsv_url, sep='\t')
 
-            print(f"[DEBUG] Loaded TSV with {len(df_tsv)} rows")
+        columns_to_check = ['DRUG_NAME', 'GENE', 'SWISSPROT', 'ACTION_TYPE', 'TARGET_CLASS', 'TARGET_NAME']
+        terms = set()
 
-            terms = set()
+        for col in columns_to_check:
+            if col in df.columns:
+                col_terms = df[col].dropna().astype(str)
+                col_terms = {t.strip().lower() for t in col_terms if t.strip()}
+                terms.update(col_terms)
 
-            def clean_series(s):
-                return s.dropna().map(lambda x: str(x).strip().lower() if isinstance(x, (str, int, float)) else "").dropna()
+        self.logger.info(f"✅ Loaded {len(terms)} drug terms from TSV columns: {columns_to_check}")
+        return terms
 
-            for col in ['DRUG_NAME', 'GENE', 'SWISSPROT', 'ACTION_TYPE', 'TARGET_CLASS', 'TARGET_NAME']:
-                if col in df_tsv.columns:
-                    try:
-                        terms.update(clean_series(df_tsv[col]))
-                    except Exception as e:
-                        self.logger.error(f"[ERROR] Failed processing column '{col}' in TSV: {e}")
 
-            filtered_terms = {term for term in terms if len(term) >= 4}
+    def extract_drug_names(self, text: str, title: str = None) -> List[str]:
+        """Improved drug name extraction with better pattern matching"""
+        if not text.strip():
+            return []
 
-            print(f"[INFO] Total unique drug-related terms collected: {len(filtered_terms)}")
-            print(f"[DEBUG] Rows from .tsv: {len(df_tsv)}")
+        matched = set()  # Avoid duplicates
 
-            return filtered_terms
+        # Combine title and content for better context
+        full_text = f"{title or ''} {text}".lower()
 
+        for term in self.drug_terms:
+            if len(term) < 4:
+                continue  # Skip too short terms
+
+            pattern = r'(?<!\w)' + re.escape(term.lower()) + r'(?!\w)'
+            if re.search(pattern, full_text, flags=re.IGNORECASE):
+                matched.add(term)
+
+        return sorted(matched)
+
+
+    def extract_text_from_pdf_preview(self, pdf_url, timeout=15):  # Remove staticmethod decorator
+        """Extract text from PDF with better error handling."""
+        if not pdf_url:
+            return ""
+            
+        try:
+            response = requests.get(pdf_url, timeout=timeout)
+            response.raise_for_status()
+            
+            with fitz.open(stream=response.content, filetype="pdf") as doc:
+                return " ".join(page.get_text() for page in doc[:3])  # First 3 pages
+            
         except Exception as e:
-            self.logger.error(f"Error loading drug terms from GitHub: {e}")
-            return set()
+            self.logger.error(f"PDF extraction failed for {pdf_url}: {str(e)}")
+            return ""
      
      
     def get_analysis_text(self, response, pdf_url):
@@ -824,23 +848,6 @@ class ECnewsSpider(scrapy.Spider):
 
         
         self.row_count += 1
-            
-    def extract_drug_names(self, text: str) -> List[str]:
-        """Match drug terms from .tsv using case-insensitive whole-word matching."""
-        import re
-
-        if not text.strip():
-            return []
-
-        clean_text = re.sub(r'[^\w\s\-]', ' ', text).lower()  # preserve hyphens
-        clean_text = re.sub(r'\s+', ' ', clean_text)
-
-        found = set()
-        for term in self.drug_terms:
-            if re.search(rf'\b{re.escape(term)}\b', clean_text):
-                found.add(term)
-
-        return sorted(found)
      
     def extract_text_from_pdf_preview(pdf_url, timeout=15):
         """Extract text from first page of PDF with timeout"""
@@ -933,3 +940,4 @@ if __name__ == "__main__":
     process = CrawlerProcess()
     process.crawl(ECnewsSpider)
     process.start()
+
