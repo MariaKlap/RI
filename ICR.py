@@ -809,5 +809,5 @@ class ICR(scrapy.Spider):
     
 if __name__ == "__main__":
     process = CrawlerProcess()
-    process.crawl(EMAnewsSpider)
+    process.crawl(ICR)
     process.start()
