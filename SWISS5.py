@@ -16,6 +16,7 @@ from selenium.common.exceptions import TimeoutException
 import time
 import pandas as pd
 from scrapy.crawler import CrawlerProcess
+from transformers import pipeline
 
 
 class SWISSnewsSpider(scrapy.Spider):
@@ -43,6 +44,7 @@ class SWISSnewsSpider(scrapy.Spider):
     def __init__(self, max_pages=3, *args, **kwargs):
         super().__init__(*args, **kwargs)
         super(SWISSnewsSpider, self).__init__(*args, **kwargs)
+        self.translator = pipeline("translation", model="Helsinki-NLP/opus-mt-de-en")
         self.max_pages = max_pages
         self.current_page = 1
         self.seen_urls = set() 
@@ -823,48 +825,44 @@ class SWISSnewsSpider(scrapy.Spider):
         
         main_content = response.css('.col-md-8 .mod.mod-text')
         if not main_content:
-            # Fallback to .col-sm-8 if no content found
             main_content = response.css('.col-sm-8 .mod.mod-text')
-
-        # Use only the first matched element
+    
         main_content = main_content[0] if main_content else None
         
-        
-        # Extract title from h1 tag (more likely to be correct than h3 a)
         title = response.css('div.mod-html h1::text').get() or item['Title']
         
-        # Extract all text content from the main content area
+        # Extract all text content
         full_text = ' '.join(main_content.xpath('.//text()[not(parent::script)]').getall()).strip()
-        
-        # Clean up the text by removing excessive whitespace
         full_text = ' '.join(full_text.split())
         
-        # Translate the text to English before processing
-        translated_text = self.translate_to_english(full_text)
-        translated_title = self.translate_to_english(title)
+        # Detect language first
+        detected_language = self.detect_language(full_text)
+        item['Language'] = detected_language if detected_language else "German"
         
-        # Try to extract date from the text (if available)
-        date = item['Date']  # Keep original date if no better one found
+        # Translate if German
+        if "German" in detected_language:
+            translated_text = self.translate_to_english(full_text)
+            translated_title = self.translate_to_english(title)
+        else:
+            translated_text = full_text
+            translated_title = title
         
-        # Process the item data using the translated text
         item['Title'] = translated_title if translated_title else title
-        item['Date'] = date
+        item['Date'] = item['Date']  # Keep original date
+        
+        # Generate summary from translated text (if German) or original (if English)
         item['Summary'] = self.generate_summary(translated_text) if translated_text.strip() else "No text content available"
+        
+        # Rest of your processing...
         item['Product_Type'] = self.classify_product_type(translated_text)
         item['Document_Type'] = self.classify_document_type(translated_text)
         
-        # Extract other information from translated text
         mentioned_countries = self.detect_mentioned_countries(translated_text)
         item['Mentioned_Countries'] = ", ".join(mentioned_countries) if mentioned_countries else "None"
         item['Mentioned_Regions'] = ", ".join(self.detect_mentioned_regions(mentioned_countries)) if mentioned_countries else "None"
-        item['Inferred_Country'] = "Switzerland"  # Since it's Swissmedic
+        item['Inferred_Country'] = "Switzerland"
         
-        # Extract drug names - try title first, then fall back to text
         item['Drug_names'] = ", ".join(self.extract_drug_names(translated_text, translated_title)) or "None"
-        
-        # Detect language from original text (not translated)
-        detected_language = self.detect_language(full_text)
-        item['Language'] = detected_language if detected_language else "German"  # Fallback to German
         
         # Write to Excel
         row = [
@@ -878,7 +876,7 @@ class SWISSnewsSpider(scrapy.Spider):
             item['Mentioned_Regions'],
             item['Drug_names'],
             item['Language'],
-            self.start_urls[0]  # Source URL
+            self.start_urls[0]
         ]
         
         self.ws.append(row)
