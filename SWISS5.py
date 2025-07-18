@@ -15,6 +15,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 import time
 import pandas as pd
+from scrapy.crawler import CrawlerProcess
 
 
 class SWISSnewsSpider(scrapy.Spider):
