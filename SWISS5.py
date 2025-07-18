@@ -16,8 +16,7 @@ from selenium.common.exceptions import TimeoutException
 import time
 import pandas as pd
 from scrapy.crawler import CrawlerProcess
-from transformers import pipeline
-
+from googletrans import Translator
 
 class SWISSnewsSpider(scrapy.Spider):
     name = 'SWISS5'
@@ -44,7 +43,7 @@ class SWISSnewsSpider(scrapy.Spider):
     def __init__(self, max_pages=3, *args, **kwargs):
         super().__init__(*args, **kwargs)
         super(SWISSnewsSpider, self).__init__(*args, **kwargs)
-        self.translator = pipeline("translation", model="Helsinki-NLP/opus-mt-de-en")
+        self.translator = Translator()
         self.max_pages = max_pages
         self.current_page = 1
         self.seen_urls = set() 
@@ -826,34 +825,44 @@ class SWISSnewsSpider(scrapy.Spider):
         main_content = response.css('.col-md-8 .mod.mod-text')
         if not main_content:
             main_content = response.css('.col-sm-8 .mod.mod-text')
-    
+
         main_content = main_content[0] if main_content else None
         
         title = response.css('div.mod-html h1::text').get() or item['Title']
-        
-        # Extract all text content
         full_text = ' '.join(main_content.xpath('.//text()[not(parent::script)]').getall()).strip()
         full_text = ' '.join(full_text.split())
         
-        # Detect language first
+        # Detect language from original text
         detected_language = self.detect_language(full_text)
         item['Language'] = detected_language if detected_language else "German"
         
-        # Translate if German
-        if "German" in detected_language:
-            translated_text = self.translate_to_english(full_text)
-            translated_title = self.translate_to_english(title)
+        # Translate to English if detected language is German
+        if "German" in item['Language']:
+            try:
+                translated_text = self.translator.translate(full_text, src='de', dest='en').text
+                translated_title = self.translator.translate(title, src='de', dest='en').text
+
+                # Log for debug
+                self.logger.info("✅ Translation successful")
+                self.logger.debug(f"🔁 Translated summary preview: {translated_text[:200]}")
+
+                # Warn if translation appears identical
+                if translated_text.strip() == full_text.strip():
+                    self.logger.warning("⚠️ Translation did not change the text (may have failed silently)")
+
+            except Exception as e:
+                self.logger.error(f"Translation failed: {str(e)}")
+                translated_text = full_text
+                translated_title = title
+
         else:
             translated_text = full_text
             translated_title = title
         
-        item['Title'] = translated_title if translated_title else title
-        item['Date'] = item['Date']  # Keep original date
-        
-        # Generate summary from translated text (if German) or original (if English)
-        item['Summary'] = self.generate_summary(translated_text) if translated_text.strip() else "No text content available"
-        
-        # Rest of your processing...
+        # Process the item data
+        item['Title'] = translated_title
+        item['Date'] = item['Date']
+        item['Summary'] = translated_text if translated_text.strip() else "No text content available"
         item['Product_Type'] = self.classify_product_type(translated_text)
         item['Document_Type'] = self.classify_document_type(translated_text)
         
@@ -883,6 +892,7 @@ class SWISSnewsSpider(scrapy.Spider):
         self.row_count += 1
         
         yield item
+
         
     def translate_to_english(self, text: str) -> str:
         """Dynamic translation that automatically handles any input length"""
