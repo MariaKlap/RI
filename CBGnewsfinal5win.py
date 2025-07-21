@@ -299,7 +299,6 @@ def _format_date(self, date_str):
                 country_info = self.detect_countries(f"{title_en} {content_en}")
 
                 self.ws.append([
-                self.ws.append([
                     title,
                     summary, 
                     url,
