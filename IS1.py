@@ -1030,7 +1030,8 @@ class ISnewsSpider(scrapy.Spider):
 
         # Keep only top 15 newest news
         df = df.head(15)
-        df['Date'] = df['Date'].dt.strftime('%d-%m-%Y')
+        df['Date'] = df['Date'].dt.strftime('%d/%m/%Y')
+
 
         df.to_excel("IS_news.xlsx", index=False)
         
