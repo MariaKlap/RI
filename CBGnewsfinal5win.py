@@ -240,10 +240,16 @@ class CBGfinal5Spider(scrapy.Spider):
                 content = item.css('p:not(.meta)::text').get(default="").strip()
                # Extract and format the date
                 raw_date = item.css('p.meta::text').get(default="").strip().split()[2]
-                try:
-                    parsed_date = datetime.strptime(raw_date, "%d-%m-%Y").strftime("%d/%m/%Y")
-                except Exception:
-                    parsed_date = raw_date  # fallback if format fails
+                
+                # Normalize various formats to dd/mm/yyyy
+                parsed_date = raw_date  # fallback
+                for fmt in ("%d-%m-%Y", "%d.%m.%Y", "%d/%m/%Y", "%Y-%m-%d"):
+                    try:
+                        parsed_date = datetime.strptime(raw_date, fmt).strftime("%d/%m/%Y")
+                        break
+                    except ValueError:
+                        continue
+
 
                 url = response.urljoin(item.css('a::attr(href)').get())
 
