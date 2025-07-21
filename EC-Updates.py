@@ -54,7 +54,7 @@ class EC(scrapy.Spider):
     def closed(self, reason):
         """Called when the spider is closed"""
         df = pd.DataFrame(self.data_rows, columns=[
-            'Title', 'Summary', 'Date', 'Source_URL', 'Article_URL',
+            'Title', 'Summary', 'Date', 'Source URL', 'Article URL',
             'Document_Type', 'Product_Type', 'Countries', 'Regions',
             'Drug_names', 'Language'
         ])
@@ -688,7 +688,7 @@ class EC(scrapy.Spider):
                 full_url,
                 callback=self.parse_article_page,
                 meta={
-                    'source_url': response.url,
+                    'source url': response.url,
                     'title': title,
                     'date': date,
                     'summary': summary
@@ -731,7 +731,7 @@ class EC(scrapy.Spider):
             title,
             summary,
             self._format_date(date),
-            response.meta['source_url'],
+            response.meta['source url'],
             response.url,
             doc_type,
             product_type,
@@ -749,8 +749,8 @@ class EC(scrapy.Spider):
             'title': title,
             'summary': summary,
             'date': self._format_date(date),
-            'source_url': response.meta['source_url'],
-            'article_url': response.url,
+            'source url': response.meta['source url'],
+            'article url': response.url,
             'document_type': doc_type,
             'product_type': product_type,
             'countries': list(set(countries)) if countries else None,
