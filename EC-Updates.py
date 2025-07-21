@@ -6,6 +6,7 @@ from datetime import datetime
 from urllib.parse import urljoin
 import os
 import pandas as pd
+from scrapy.crawler import CrawlerProcess
 
 
 class EC(scrapy.Spider):
