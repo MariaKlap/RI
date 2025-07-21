@@ -11,6 +11,7 @@ import pandas as pd
 from deep_translator.exceptions import TranslationNotFound, RequestError
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
+from datetime import datetime
 
 DetectorFactory.seed = 0
 
@@ -237,7 +238,13 @@ class CBGfinal5Spider(scrapy.Spider):
             for item in items:
                 title = item.css('h3::text').get(default="").strip()
                 content = item.css('p:not(.meta)::text').get(default="").strip()
-                date = item.css('p.meta::text').get(default="").strip().split()[2]
+               # Extract and format the date
+                raw_date = item.css('p.meta::text').get(default="").strip().split()[2]
+                try:
+                    parsed_date = datetime.strptime(raw_date, "%d-%m-%Y").strftime("%d/%m/%Y")
+                except Exception:
+                    parsed_date = raw_date  # fallback if format fails
+
                 url = response.urljoin(item.css('a::attr(href)').get())
 
                 # Improved language detection
@@ -267,10 +274,11 @@ class CBGfinal5Spider(scrapy.Spider):
                 country_info = self.detect_countries(f"{title_en} {content_en}")
 
                 self.ws.append([
-                    title,  # Keep original title
+                self.ws.append([
+                    title,
                     summary, 
                     url,
-                    date,
+                    parsed_date,  # <-- use the formatted date
                     doc_info['document_type'],
                     product_info['product_type'],
                     country_info['mentioned_countries'],
@@ -278,9 +286,10 @@ class CBGfinal5Spider(scrapy.Spider):
                     product_info['drug_names'],
                     lang,
                     self.start_urls[0],
-                    title_en,  # Translated title
-                    content_en  # Translated content
+                    title_en,
+                    content_en
                 ])
+
 
             # Pagination
             current_page = int(response.url.split('pagina=')[1]) if 'pagina=' in response.url else 1
