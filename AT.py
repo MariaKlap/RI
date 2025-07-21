@@ -794,13 +794,24 @@ class AT(scrapy.Spider):
         return ' '.join(summary)
     
     def _format_date(self, date_str):
-        """Convert date strings like '3rd April 2025' to '03/04/2025'"""
         try:
-            date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str)  # Remove ordinal suffixes
-            date_obj = datetime.strptime(date_str.strip(), '%d %B %Y')
-            return date_obj.strftime('%d/%m/%Y')  # Changed from '%d-%m-%Y' to '%d/%m/%Y'
+            # Format already like 21/07/2025
+            return datetime.strptime(date_str.strip(), '%d/%m/%Y').strftime('%d/%m/%Y')
         except:
-            return None
+            try:
+                # Handle formats like "21 July 2025" or "21st July 2025"
+                date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str)
+                date_obj = datetime.strptime(date_str.strip(), '%d %B %Y')
+                return date_obj.strftime('%d/%m/%Y')
+            except:
+                try:
+                    # Handle format like "2025-07-21"
+                    date_obj = datetime.strptime(date_str.strip(), '%Y-%m-%d')
+                    return date_obj.strftime('%d/%m/%Y')
+                except:
+                    # Leave untouched if format unknown
+                    return date_str
+
 
     def detect_languages(self, text):
         """Detect document language with focus on accuracy"""
