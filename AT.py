@@ -752,7 +752,7 @@ class AT(scrapy.Spider):
             product_type,
             ', '.join(set(countries)) if countries else None,
             ', '.join(set(regions)) if regions else None,
-            ', '.join(drug_names) if drug_names else 'Unknown',
+            ', '.join(drug_names) if drug_names else 'None',
             ', '.join(language) if language else 'Unknown'
         ]
 
@@ -769,7 +769,7 @@ class AT(scrapy.Spider):
             'product_type': product_type,
             'countries': list(set(countries)) if countries else None,
             'regions': list(set(regions)) if regions else None,
-            'drug_names': drug_names if drug_names else ['Unknown'],
+            'drug_names': drug_names if drug_names else ['None'],
             'language': language
         }
     
