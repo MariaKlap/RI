@@ -922,27 +922,31 @@ class SWISSnewsSpider(scrapy.Spider):
             return text  # Return original text if translation fails
             
     def format_date(self, date_str):
-        """Convert date formats like '22.04.2025' to '22/04/2025'"""
+        """Convert various date formats to 'DD/MM/YYYY'"""
         if not date_str or not date_str.strip():
             return "Unknown"
-        
-        try:
-            # Handle Swiss/German date format (dd.mm.yyyy)
-            if '.' in date_str:
-                day, month, year = date_str.split('.')
-                return f"{day.zfill(2)}/{month.zfill(2)}/{year}"
-            
-            # Try other formats if needed
-            for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%B %d, %Y"):
-                try:
-                    date_obj = datetime.strptime(date_str, fmt)
-                    return date_obj.strftime("%d/%m/%Y")
-                except ValueError:
-                    continue
-        except Exception as e:
-            self.logger.error(f"Date formatting error for '{date_str}': {str(e)}")
-        
-        return date_str  # Return original if parsing fails       
+    
+        date_str = date_str.strip()
+    
+        # Replace dots and dashes with slashes for normalization
+        cleaned_date = re.sub(r"[.\-]", "/", date_str)
+    
+        possible_formats = [
+            "%d/%m/%Y", "%Y/%m/%d", "%d/%m/%y", "%d %B %Y", "%B %d, %Y",
+            "%Y-%m-%d", "%d-%m-%Y", "%d.%m.%Y", "%Y.%m.%d", "%d %b %Y"
+        ]
+    
+        for fmt in possible_formats:
+            try:
+                dt = datetime.strptime(cleaned_date, fmt)
+                return dt.strftime("%d/%m/%Y")
+            except ValueError:
+                continue
+    
+        # If nothing works, return original for logging/debug
+        self.logger.warning(f"⚠️ Date parsing failed for: {date_str}")
+        return date_str
+         
     
     def generate_summary(self, text, max_length=60, min_length=40):
         if not text.strip():
