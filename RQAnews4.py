@@ -33,7 +33,7 @@ class RQAnewsSpider(scrapy.Spider):
         
         self.data_rows = []
         
-        tsv_url = "https://raw.githubusercontent.com/MariaKlap/Drug-Name-Database/refs/heads/main/drug.target.interaction%20(2).tsv"
+        tsv_url = "https://raw.githubusercontent.com/MariaKlap/Drug-Name-Database/refs/heads/main/drug.target.interaction.tsv"
                    
 
         try:
