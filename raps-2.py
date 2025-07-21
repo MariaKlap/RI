@@ -748,16 +748,34 @@ class raps:
         return ' '.join(summary)
     
     def _format_date(self, date_str):
-        try:
-            return datetime.strptime(date_str.strip(), '%d/%m/%Y').strftime('%d-%m-%Y')
-        except:
+        """Convert various date formats to DD/MM/YYYY"""
+        if not date_str or not date_str.strip():
+            return "Unknown"
+    
+        date_str = date_str.strip()
+        
+        # Remove ordinal suffixes (1st, 2nd, 3rd, 4th, etc.)
+        date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str)
+        
+        # Try different date formats
+        formats_to_try = [
+            '%d-%m-%Y',  # 26-06-2025
+            '%d %B %Y',  # 26 June 2025
+            '%B %d, %Y', # June 26, 2025
+            '%m/%d/%Y',  # 06/26/2025 (US format)
+            '%Y-%m-%d',  # 2025-06-26 (ISO format)
+            '%d.%m.%Y'   # 26.06.2025
+        ]
+        
+        for fmt in formats_to_try:
             try:
-                date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str)
-                date_obj = datetime.strptime(date_str.strip(), '%d %B %Y')
-                return date_obj.strftime('%d-%m-%Y')
-            except:
-                return date_str  
-
+                date_obj = datetime.strptime(date_str, fmt)
+                return date_obj.strftime('%d/%m/%Y')  # Always return in DD/MM/YYYY format
+            except ValueError:
+                continue
+        
+        # If all parsing fails, return original string (cleaned)
+        return date_str
 
     def detect_languages(self, text):
         """Detect document language with focus on accuracy"""
