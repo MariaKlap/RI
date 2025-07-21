@@ -648,7 +648,8 @@ class HMAnewsSpider(scrapy.Spider):
         if datetime_attr:
             try:
                 date_obj = datetime.strptime(datetime_attr.split('T')[0], '%Y-%m-%d')
-                return date_obj.strftime('%d-%m-%Y')  # Convert to DD-MM-YYYY
+                return date_obj.strftime('%d/%m/%Y')
+
             except:
                 pass
             
@@ -664,11 +665,11 @@ class HMAnewsSpider(scrapy.Spider):
                 match = re.search(r'/(\d{4})-(\d{2})-(\d{2})[-_]', pdf_href)
                 if match:
                     date_obj = datetime.strptime(f"{match.group(1)}-{match.group(2)}-{match.group(3)}", '%Y-%m-%d')
-                    return date_obj.strftime('%d-%m-%Y')
+                    return date_obj.strftime('%d/%m/%Y')
                 match = re.search(r'/(\d{4})-(\d{2})[-_]', pdf_href)
                 if match:
                     date_obj = datetime.strptime(f"{match.group(1)}-{match.group(2)}-01", '%Y-%m-%d')
-                    return date_obj.strftime('%d-%m-%Y')
+                    return date_obj.strftime('%d/%m/%Y')
             except:
                 pass
             return None
