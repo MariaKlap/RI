@@ -701,7 +701,9 @@ class raps:
                     product_type = self.classify_product(combined_text)
                     countries = self.detect_countries(combined_text)
                     regions = [self.REGION_MAPPING.get(c, 'Other') for c in countries]
-                    drug_names = self.extract_drug_names(combined_text)
+                    matched_drugs = self.extract_drug_names(combined_text)
+                    drug_names = ', '.join(matched_drugs) if matched_drugs else 'None'
+                    language = ', '.join(self.detect_languages(combined_text)) if self.detect_languages(combined_text) else 'None'
                     
                     row_data = [
                         title,
@@ -713,7 +715,7 @@ class raps:
                         ', '.join(set(countries)) if countries else None,
                         ', '.join(set(regions)) if regions else None,
                         drug_names,
-                        ', '.join(self.detect_languages(combined_text)) if self.detect_languages(combined_text) else 'None',
+                        language,
                         url # source listing page
                         ]
 
