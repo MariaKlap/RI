@@ -6,7 +6,7 @@ from collections import Counter
 from datetime import datetime
 from urllib.parse import urljoin
 import os
-
+from scrapy.crawler import CrawlerProcess
 
 class ICR(scrapy.Spider):
     name = 'ICR'
@@ -54,8 +54,9 @@ class ICR(scrapy.Spider):
             'Product_Type', 'Countries', 'Regions', 'Drug_names', 
             'Language', 'Source URL'
         ])
-        df.to_excel(self.output_file, index=False)
-        self.logger.info(f"Data saved to {os.path.abspath(self.output_file)}")
+        output_path = os.path.join(os.getcwd(), self.output_file)
+        df.to_excel(output_path, index=False)
+        self.logger.info(f"Data saved to {output_path}")
 
         # Language code to full name mapping
     LANGUAGE_NAMES = {
