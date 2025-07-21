@@ -225,7 +225,33 @@ class CBGfinal5Spider(scrapy.Spider):
             'mentioned_countries': ", ".join(countries) if countries else "None",
             'mentioned_regions': ", ".join(regions) if regions else "None"
         }
+        
+def _format_date(self, date_str):
+    if not date_str or not date_str.strip():
+        return "Unknown"
 
+    date_str = date_str.strip()
+    date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str, flags=re.IGNORECASE)
+
+    known_formats = [
+        "%d-%m-%Y",        # 14-07-2025
+        "%d.%m.%Y",        # 14.07.2025
+        "%d/%m/%Y",        # 14/07/2025
+        "%Y-%m-%d",        # 2025-07-14
+        "%d. %B %Y",       # 14. July 2025
+        "%d %B %Y",        # 14 July 2025
+    ]
+
+    for fmt in known_formats:
+        try:
+            dt = datetime.strptime(date_str, fmt)
+            return dt.strftime("%d/%m/%Y")
+        except ValueError:
+            continue
+
+    return date_str  # fallback
+
+    
     def generate_summary(self, text: str) -> str:
         if not text.strip():
             return "No content"
@@ -242,14 +268,7 @@ class CBGfinal5Spider(scrapy.Spider):
                 raw_date = item.css('p.meta::text').get(default="").strip().split()[2]
                 
                 # Normalize various formats to dd/mm/yyyy
-                parsed_date = raw_date  # fallback
-                for fmt in ("%d-%m-%Y", "%d.%m.%Y", "%d/%m/%Y", "%Y-%m-%d"):
-                    try:
-                        parsed_date = datetime.strptime(raw_date, fmt).strftime("%d/%m/%Y")
-                        break
-                    except ValueError:
-                        continue
-
+                parsed_date = self._format_date(raw_date)
 
                 url = response.urljoin(item.css('a::attr(href)').get())
 
