@@ -8,6 +8,8 @@ from urllib.parse import urljoin
 import os
 from scrapy.crawler import CrawlerProcess
 
+
+
 class ICR(scrapy.Spider):
     name = 'ICR'
 
@@ -54,9 +56,8 @@ class ICR(scrapy.Spider):
             'Product_Type', 'Countries', 'Regions', 'Drug_names', 
             'Language', 'Source URL'
         ])
-        output_path = os.path.join(os.getcwd(), self.output_file)
-        df.to_excel(output_path, index=False)
-        self.logger.info(f"Data saved to {output_path}")
+        df.to_excel(self.output_file, index=False)
+        self.logger.info(f"Data saved to {os.path.abspath(self.output_file)}")
 
         # Language code to full name mapping
     LANGUAGE_NAMES = {
@@ -638,7 +639,7 @@ class ICR(scrapy.Spider):
         matched = []
         for term in self.drug_terms_set:
             # Escape regex special chars and match as whole word/phrase
-            pattern = r'\b' + re.escape(term) + r'\b'
+            pattern = r'(?<!\w)' + re.escape(term.lower()) + r'(?!\w)'
             if re.search(pattern, text, flags=re.IGNORECASE):
                 matched.append(term)
         return matched
