@@ -226,30 +226,30 @@ class CBGfinal5Spider(scrapy.Spider):
             'mentioned_regions': ", ".join(regions) if regions else "None"
         }
         
-def _format_date(self, date_str):
-    if not date_str or not date_str.strip():
-        return "Unknown"
-
-    date_str = date_str.strip()
-    date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str, flags=re.IGNORECASE)
-
-    known_formats = [
-        "%d-%m-%Y",        # 14-07-2025
-        "%d.%m.%Y",        # 14.07.2025
-        "%d/%m/%Y",        # 14/07/2025
-        "%Y-%m-%d",        # 2025-07-14
-        "%d. %B %Y",       # 14. July 2025
-        "%d %B %Y",        # 14 July 2025
-    ]
-
-    for fmt in known_formats:
-        try:
-            dt = datetime.strptime(date_str, fmt)
-            return dt.strftime("%d/%m/%Y")
-        except ValueError:
-            continue
-
-    return date_str  # fallback
+    def _format_date(self, date_str):
+        if not date_str or not date_str.strip():
+            return "Unknown"
+    
+        date_str = date_str.strip()
+        date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str, flags=re.IGNORECASE)
+    
+        known_formats = [
+            "%d-%m-%Y",        # 14-07-2025
+            "%d.%m.%Y",        # 14.07.2025
+            "%d/%m/%Y",        # 14/07/2025
+            "%Y-%m-%d",        # 2025-07-14
+            "%d. %B %Y",       # 14. July 2025
+            "%d %B %Y",        # 14 July 2025
+        ]
+    
+        for fmt in known_formats:
+            try:
+                dt = datetime.strptime(date_str, fmt)
+                return dt.strftime("%d/%m/%Y")
+            except ValueError:
+                continue
+    
+        return date_str  # fallback
 
     
     def generate_summary(self, text: str) -> str:
