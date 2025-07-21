@@ -1097,43 +1097,44 @@ class WHOnews:
         """Convert various date formats to dd/mm/yyyy"""
         if not date_str or not date_str.strip():
             return "Unknown"
-        
-        try:
-            # Remove "Publicerades:" prefix if present
-            date_str = date_str.replace("Publicerades:", "").strip()
-            
-            # Handle Swedish month names (lowercase for case-insensitive matching)
-            month_map = {
-                'januari': '01', 'februari': '02', 'mars': '03', 'april': '04',
-                'maj': '05', 'juni': '06', 'juli': '07', 'augusti': '08',
-                'september': '09', 'oktober': '10', 'november': '11', 'december': '12'
-            }
-            
-            # Try Swedish format first (e.g., "23 april 2025")
-            for month_swedish, month_num in month_map.items():
-                if month_swedish in date_str.lower():
-                    parts = date_str.split()
-                    day = parts[0].zfill(2)
-                    year = parts[2]
-                    return f"{day}/{month_num}/{year}"
-            
-            # Handle date format (dd.mm.yyyy)
-            if '.' in date_str:
-                day, month, year = date_str.split('.')
-                return f"{day.zfill(2)}/{month.zfill(2)}/{year}"
-            
-            # Try other common formats
-            for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%B %d, %Y", "%b %d, %Y"):
-                try:
-                    date_obj = datetime.strptime(date_str, fmt)
-                    return date_obj.strftime("%d/%m/%Y")
-                except ValueError:
-                    continue
-                    
-        except Exception as e:
-            print(f"Date formatting error for '{date_str}': {str(e)}")
-        
-        return date_str  # Return original if parsing fails  
+    
+        date_str = date_str.replace("Publicerades:", "").strip()
+    
+        # Handle Swedish month names
+        month_map = {
+            'januari': '01', 'februari': '02', 'mars': '03', 'april': '04',
+            'maj': '05', 'juni': '06', 'juli': '07', 'augusti': '08',
+            'september': '09', 'oktober': '10', 'november': '11', 'december': '12'
+        }
+    
+        # Match Swedish textual date: "21 juli 2025"
+        swedish_pattern = re.match(r"(\d{1,2})\s+([a-zA-ZåäöÅÄÖ]+)\s+(\d{4})", date_str, re.IGNORECASE)
+        if swedish_pattern:
+            day, month_word, year = swedish_pattern.groups()
+            month = month_map.get(month_word.lower())
+            if month:
+                return f"{day.zfill(2)}/{month}/{year}"
+    
+        # Known numeric formats
+        formats_to_try = [
+            "%d-%m-%Y",  # 21-07-2025
+            "%Y-%m-%d",  # 2025-07-21
+            "%d.%m.%Y",  # 21.07.2025
+            "%d/%m/%Y",  # 21/07/2025 (already correct)
+            "%B %d, %Y", # July 21, 2025
+            "%b %d, %Y"  # Jul 21, 2025
+        ]
+    
+        for fmt in formats_to_try:
+            try:
+                parsed = datetime.strptime(date_str, fmt)
+                return parsed.strftime("%d/%m/%Y")
+            except ValueError:
+                continue
+    
+        # Fallback: return input if all parsing fails
+        return date_str
+      
     
     def translate_to_english(self, text):
         if not text.strip():
