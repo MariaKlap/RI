@@ -55,7 +55,7 @@ class AT(scrapy.Spider):
         df = pd.DataFrame(self.data_rows, columns=[
             'Title', 'Summary', 'Date', 'Source URL', 'Article URL',
             'Document_Type', 'Product_Type', 'Countries', 'Regions',
-            'Drug_Names', 'Language'
+            'Drug_names', 'Language'
         ])
         output_path = os.path.join(os.getcwd(), self.output_file)
         df.to_excel(output_path, index=False)
