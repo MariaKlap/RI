@@ -1098,31 +1098,36 @@ class WHOnews:
         if not date_str or not date_str.strip():
             return "Unknown"
     
-        date_str = date_str.replace("Publicerades:", "").strip()
-    
-        # Handle Swedish month names
+        date_str = date_str.strip()
+        
+        # Handle Swedish month names if present
         month_map = {
             'januari': '01', 'februari': '02', 'mars': '03', 'april': '04',
             'maj': '05', 'juni': '06', 'juli': '07', 'augusti': '08',
-            'september': '09', 'oktober': '10', 'november': '11', 'december': '12'
+            'september': '09', 'oktober': '10', 'november': '11', 'december': '12',
+            'january': '01', 'february': '02', 'march': '03', 'april': '04',
+            'may': '05', 'june': '06', 'july': '07', 'august': '08',
+            'september': '09', 'october': '10', 'november': '11', 'december': '12'
         }
     
-        # Match Swedish textual date: "21 juli 2025"
-        swedish_pattern = re.match(r"(\d{1,2})\s+([a-zA-ZåäöÅÄÖ]+)\s+(\d{4})", date_str, re.IGNORECASE)
-        if swedish_pattern:
-            day, month_word, year = swedish_pattern.groups()
+        # Try to parse full month name format (30 June 2025)
+        month_name_pattern = r"(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})"
+        match = re.match(month_name_pattern, date_str, re.IGNORECASE)
+        if match:
+            day, month_word, year = match.groups()
             month = month_map.get(month_word.lower())
             if month:
                 return f"{day.zfill(2)}/{month}/{year}"
     
-        # Known numeric formats
+        # Try other common formats
         formats_to_try = [
-            "%d-%m-%Y",  # 21-07-2025
-            "%Y-%m-%d",  # 2025-07-21
-            "%d.%m.%Y",  # 21.07.2025
-            "%d/%m/%Y",  # 21/07/2025 (already correct)
-            "%B %d, %Y", # July 21, 2025
-            "%b %d, %Y"  # Jul 21, 2025
+            "%d %B %Y",  # 30 June 2025
+            "%B %d, %Y", # June 30, 2025
+            "%d-%m-%Y",  # 30-06-2025
+            "%Y-%m-%d",  # 2025-06-30
+            "%d.%m.%Y",  # 30.06.2025
+            "%d/%m/%Y",  # 30/06/2025 (already correct)
+            "%b %d, %Y" # Jun 30, 2025
         ]
     
         for fmt in formats_to_try:
@@ -1134,7 +1139,6 @@ class WHOnews:
     
         # Fallback: return input if all parsing fails
         return date_str
-      
     
     def translate_to_english(self, text):
         if not text.strip():
