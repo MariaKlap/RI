@@ -766,14 +766,20 @@ class GMP:
     
     def _format_date(self, date_str):
         try:
-            return datetime.strptime(date_str.strip(), '%d/%m/%Y').strftime('%d-%m-%Y')
+            # Try format: 21/07/2025
+            return datetime.strptime(date_str.strip(), '%d/%m/%Y').strftime('%d/%m/%Y')
         except:
             try:
-                date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str)
-                date_obj = datetime.strptime(date_str.strip(), '%d %B %Y')
-                return date_obj.strftime('%d-%m-%Y')
+                # Try format: 21.07.2025
+                return datetime.strptime(date_str.strip(), '%d.%m.%Y').strftime('%d/%m/%Y')
             except:
-                return date_str  
+                try:
+                    # Try format: 21 July 2025 or 21st July 2025
+                    date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str)
+                    date_obj = datetime.strptime(date_str.strip(), '%d %B %Y')
+                    return date_obj.strftime('%d/%m/%Y')
+                except:
+                    return date_str
 
 
     def detect_languages(self, text):
