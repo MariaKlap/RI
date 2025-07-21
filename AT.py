@@ -794,24 +794,34 @@ class AT(scrapy.Spider):
         return ' '.join(summary)
     
     def _format_date(self, date_str):
-        try:
-            # Format already like 21/07/2025
-            return datetime.strptime(date_str.strip(), '%d/%m/%Y').strftime('%d/%m/%Y')
-        except:
+        if not date_str or not date_str.strip():
+            return "Unknown"
+    
+        date_str = date_str.strip()
+    
+        # Remove ordinal suffixes (e.g., 21st -> 21)
+        date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str, flags=re.IGNORECASE)
+    
+        # Known formats to handle
+        formats_to_try = [
+            "%d/%m/%Y",           # already correct
+            "%d %B %Y",           # 17 July 2025
+            "%Y-%m-%d",           # 2025-07-21
+            "%d.%m.%Y",           # 17.07.2025
+            "%d. %B %Y",          # 17. July 2025 <== new case added
+            "%B %d, %Y",          # July 17, 2025
+            "%d %b %Y",           # 17 Jul 2025
+        ]
+    
+        for fmt in formats_to_try:
             try:
-                # Handle formats like "21 July 2025" or "21st July 2025"
-                date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str)
-                date_obj = datetime.strptime(date_str.strip(), '%d %B %Y')
-                return date_obj.strftime('%d/%m/%Y')
-            except:
-                try:
-                    # Handle format like "2025-07-21"
-                    date_obj = datetime.strptime(date_str.strip(), '%Y-%m-%d')
-                    return date_obj.strftime('%d/%m/%Y')
-                except:
-                    # Leave untouched if format unknown
-                    return date_str
-
+                parsed_date = datetime.strptime(date_str, fmt)
+                return parsed_date.strftime("%d/%m/%Y")
+            except ValueError:
+                continue
+    
+        # If all parsing fails, return original string
+        return date_str
 
     def detect_languages(self, text):
         """Detect document language with focus on accuracy"""
