@@ -9,6 +9,7 @@ import pandas as pd
 from scrapy.crawler import CrawlerProcess
 
 
+
 class EC(scrapy.Spider):
     name = 'EC-Updates'
 
