@@ -702,7 +702,6 @@ class raps:
                     countries = self.detect_countries(combined_text)
                     regions = [self.REGION_MAPPING.get(c, 'Other') for c in countries]
                     drug_names_info = self.extract_drug_names(combined_text)
-                    drug_names = drug_info if drug_info else 'None'
                     
                     row_data = [
                         title,
@@ -714,7 +713,7 @@ class raps:
                         ', '.join(set(countries)) if countries else None,
                         ', '.join(set(regions)) if regions else None,
                         drug_names,
-                        ', '.join(self.detect_languages(combined_text)) if self.detect_languages(combined_text) else None,
+                        ', '.join(self.detect_languages(combined_text)) if self.detect_languages(combined_text) else 'None',
                         url # source listing page
                         ]
 
