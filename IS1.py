@@ -51,6 +51,7 @@ class ISnewsSpider(scrapy.Spider):
             'Product_Type', 'Countries', 'Regions', 'Drug_names',
             'Language', 'Source URL'
         ]
+
         self.ws.append(headers)
 
         for cell in self.ws[1]:
@@ -58,7 +59,7 @@ class ISnewsSpider(scrapy.Spider):
 
         self.row_count = 2
 
-        tsv_url = "https://raw.githubusercontent.com/MariaKlap/Drug-Name-Database/refs/heads/main/drug.target.interaction.tsv"
+        tsv_url = "https://raw.githubusercontent.com/MariaKlap/Drug-Name-Database/refs/heads/main/drug.target.interaction%20(2).tsv"
                    
 
         try:
@@ -842,6 +843,12 @@ class ISnewsSpider(scrapy.Spider):
         item['Article URL'] = response.url
         item['Language'] = lang
 
+        # Detect countries and regions from the translated text
+        mentioned_countries = self.detect_mentioned_countries(translated_text)
+        mentioned_regions = self.detect_mentioned_regions(mentioned_countries)
+
+        item['Countries'] = ", ".join(mentioned_countries) if mentioned_countries else "None"
+        item['Regions'] = ", ".join(mentioned_regions) if mentioned_regions else "None"
 
         # Append to dataset
         self.data_rows.append({
@@ -851,10 +858,13 @@ class ISnewsSpider(scrapy.Spider):
             'Date': item['Date'],
             'Document_Type': item['Document_Type'],
             'Product_Type': item['Product_Type'],
+            'Countries': item['Countries'],
+            'Regions': item['Regions'],
             'Drug_names': item['Drug_names'],
             'Language': item['Language'],
             'Source URL': item['Source URL']
         })
+
         
         yield item
 
