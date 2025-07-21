@@ -701,7 +701,7 @@ class raps:
                     product_type = self.classify_product(combined_text)
                     countries = self.detect_countries(combined_text)
                     regions = [self.REGION_MAPPING.get(c, 'Other') for c in countries]
-                    drug_names_info = self.extract_drug_names(combined_text)
+                    drug_names = self.extract_drug_names(combined_text)
                     
                     row_data = [
                         title,
