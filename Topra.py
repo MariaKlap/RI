@@ -773,14 +773,23 @@ class Topra(scrapy.Spider):
     
     def _format_date(self, date_str):
         try:
-            return datetime.strptime(date_str.strip(), '%d/%m/%Y').strftime('%d-%m-%Y')
+            # Already in correct format
+            return datetime.strptime(date_str.strip(), '%d/%m/%Y').strftime('%d/%m/%Y')
         except:
             try:
+                # Remove ordinal suffix (e.g. 21st -> 21)
                 date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str)
+                # Try parsing formats like "21 July 2025"
                 date_obj = datetime.strptime(date_str.strip(), '%d %B %Y')
-                return date_obj.strftime('%d-%m-%Y')
+                return date_obj.strftime('%d/%m/%Y')
             except:
-                return date_str  
+                try:
+                    # Try formats like "July 21, 2025"
+                    date_obj = datetime.strptime(date_str.strip(), '%B %d, %Y')
+                    return date_obj.strftime('%d/%m/%Y')
+                except:
+                    return date_str  # fallback to raw
+
 
 
     def detect_languages(self, text):
