@@ -785,7 +785,7 @@ class ECM(scrapy.Spider):
             ', '.join(set(countries)) if countries else None,
             ', '.join(set(regions)) if regions else None,
             ', '.join(drug_names) if drug_names else 'None',
-            ', '.join(self.detect_languages(combined_text)) if combined_text else None,
+            ', '.join(self.detect_languages(combined_text)) if combined_text else 'None',
             response.meta['source_url']
             ]
         
@@ -802,7 +802,7 @@ class ECM(scrapy.Spider):
             'Countries': list(set(countries)) if countries else None,
             'Regions': list(set(regions)) if regions else None,
             'Drug_names': ', '.join(drug_names) if drug_names else 'None',
-            'Language': ', '.join(self.detect_languages(combined_text)) if combined_text else None,
+            'Language': ', '.join(self.detect_languages(combined_text)) if combined_text else 'None',
             'Source URL': response.meta['source_url']
             }
 
