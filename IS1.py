@@ -59,7 +59,7 @@ class ISnewsSpider(scrapy.Spider):
 
         self.row_count = 2
 
-        tsv_url = "https://raw.githubusercontent.com/MariaKlap/Drug-Name-Database/refs/heads/main/drug.target.interaction%20(2).tsv"
+        tsv_url = "https://raw.githubusercontent.com/MariaKlap/Drug-Name-Database/refs/heads/main/drug.target.interaction.tsv"
                    
 
         try:
