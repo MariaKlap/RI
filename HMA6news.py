@@ -674,22 +674,29 @@ class HMAnewsSpider(scrapy.Spider):
             return None
     
     def _parse_date_string(self, date_str):
-        """Helper to parse various date string formats and return in DD-MM-YYYY format"""
+        """Helper to parse various date string formats and return in DD/MM/YYYY format"""
         try:
             from datetime import datetime
+    
+            # Format: July 21, 2025
             if re.match(r'^[A-Za-z]+\s+\d{1,2},\s+\d{4}$', date_str):
                 date_obj = datetime.strptime(date_str, '%B %d, %Y')
-                return date_obj.strftime('%d-%m-%Y')
+                return date_obj.strftime('%d/%m/%Y')
+    
+            # Format: 21-07-2025 → convert to 21/07/2025
             if re.match(r'^\d{2}-\d{2}-\d{4}$', date_str):
-                return date_str
-            
+                date_obj = datetime.strptime(date_str, '%d-%m-%Y')
+                return date_obj.strftime('%d/%m/%Y')
+    
+            # Format: 2025-07-21 → convert to 21/07/2025
             if re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
                 date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-                return date_obj.strftime('%d-%m-%Y')
-        
+                return date_obj.strftime('%d/%m/%Y')
+    
         except Exception as e:
             self.logger.error(f"Error parsing date string: {str(e)}")
             return None
+
 
     def parse(self, response):
         """Main parsing method"""
