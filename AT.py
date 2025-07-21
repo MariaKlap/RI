@@ -57,7 +57,7 @@ class AT(scrapy.Spider):
             'Document_Type', 'Product_Type', 'Countries', 'Regions',
             'Drug_Names', 'Language'
         ])
-        output_path = os.path.join(os.path.dirname(__file__), self.output_file)
+        output_path = os.path.join(os.getcwd(), self.output_file)
         df.to_excel(output_path, index=False)
         self.logger.info(f"Data saved to {output_path}")
 
