@@ -927,27 +927,49 @@ class SWISSnewsSpider(scrapy.Spider):
             return "Unknown"
     
         date_str = date_str.strip()
-    
-        # Replace dots and dashes with slashes for normalization
-        cleaned_date = re.sub(r"[.\-]", "/", date_str)
-    
+        
+        # First replace dots with slashes if present (common in Swiss dates)
+        cleaned_date = date_str.replace('.', '/')
+        
+        # Handle cases where the date might use dashes
+        cleaned_date = cleaned_date.replace('-', '/')
+        
+        # Remove any whitespace around slashes
+        cleaned_date = re.sub(r'\s*/\s*', '/', cleaned_date)
+        
         possible_formats = [
-            "%d/%m/%Y", "%Y/%m/%d", "%d/%m/%y", "%d %B %Y", "%B %d, %Y",
-            "%Y-%m-%d", "%d-%m-%Y", "%d.%m.%Y", "%Y.%m.%d", "%d %b %Y"
+            "%d/%m/%Y",  # 18/07/2025
+            "%d/%m/%y",   # 18/07/25
+            "%Y/%m/%d",   # 2025/07/18
+            "%d %B %Y",   # 18 July 2025
+            "%B %d, %Y",  # July 18, 2025
+            "%d.%m.%Y",   # 18.07.2025 (original format)
+            "%Y.%m.%d",   # 2025.07.18
+            "%d %b %Y"    # 18 Jul 2025
         ]
-    
+        
         for fmt in possible_formats:
             try:
                 dt = datetime.strptime(cleaned_date, fmt)
                 return dt.strftime("%d/%m/%Y")
             except ValueError:
                 continue
-    
-        # If nothing works, return original for logging/debug
+        
+        # If nothing works, try to extract date components manually
+        match = re.search(r'(\d{1,2})[./](\d{1,2})[./](\d{2,4})', cleaned_date)
+        if match:
+            day, month, year = match.groups()
+            year = f"20{year}" if len(year) == 2 else year
+            try:
+                dt = datetime(int(year), int(month), int(day))
+                return dt.strftime("%d/%m/%Y")
+            except ValueError:
+                pass
+        
+        # If all parsing fails, return original for debugging (with a warning)
         self.logger.warning(f"⚠️ Date parsing failed for: {date_str}")
         return date_str
-         
-    
+        
     def generate_summary(self, text, max_length=60, min_length=40):
         if not text.strip():
             return "No text available"
