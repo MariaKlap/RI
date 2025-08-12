@@ -15,6 +15,8 @@ import os
 import time
 from scrapy.crawler import CrawlerProcess
 from typing import List
+from selenium.common.exceptions import TimeoutException, WebDriverException
+
 
 
 class raps:
@@ -47,6 +49,9 @@ class raps:
 
         # Chrome-specific configuration
         chrome_options = Options()
+        chrome_options.page_load_strategy = 'eager'  # ← don't wait for all subresources
+        # chrome_options.add_argument('--headless=new')  # optional: can help stability/speed
+
         prefs = {
             "profile.default_content_settings.popups": 0,
             "profile.content_settings.exceptions.automatic_downloads.*.setting": 1,
@@ -54,10 +59,11 @@ class raps:
             "profile.default_content_setting_values.popups": 0
         }
         chrome_options.add_experimental_option("prefs", prefs)
-        
-        # Use ChromeDriverManager for automatic driver management
+
         service = Service(ChromeDriverManager().install())
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
+        self.driver.set_page_load_timeout(45)  
+
 
     def closed(self, reason):
         """Save collected data to Excel file when spider closes"""
@@ -670,8 +676,16 @@ class raps:
 
         for page_number in range(1, 6):  
             url = base_url + str(page_number)
-            self.driver.get(url)
-            time.sleep(2)
+            try:
+                self.driver.get(url)
+            except Exception as e:
+                print(f"Page load timeout/stall on {url}: {e}")
+                self.driver.execute_script("window.stop();")  # stop the hang and continue
+
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_all_elements_located((By.XPATH, '//div[@class="item-content"]'))
+            )
+
 
             try:
                 consent_button = WebDriverWait(self.driver, 5).until(
