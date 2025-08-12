@@ -1,18 +1,16 @@
 from selenium import webdriver
 from deep_translator import GoogleTranslator
 from selenium.webdriver.common.by import By
-from selenium.webdriver.edge.service import Service
-from selenium.webdriver.edge.options import Options
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import scrapy
 import re
 import pandas as pd
 from collections import Counter
 from datetime import datetime
 from urllib.parse import urljoin
-import os
 import time
 from typing import List
 
@@ -23,16 +21,18 @@ class FInews:
         self.translator = GoogleTranslator(source='auto', target='en')
 
         # Selenium settings
-        options = Options()
         prefs = {
-            "profile.default_content_settings.popups": 0,
-            "profile.content_settings.exceptions.automatic_downloads.*.setting": 1,
-            "profile.default_content_setting_values.automatic_downloads": 1,
-            "profile.default_content_setting_values.popups": 0
+        "profile.default_content_settings.popups": 0,  # Disable popup dialogs
+        "download.default_directory": r"C:\path\to\downloads",  # Default download folder
+        "directory_upgrade": True,  # Automatically overwrite existing folders
+        "plugins.always_open_pdf_externally": True,  # Download PDFs instead of opening in Chrome
         }
+        options = webdriver.ChromeOptions()
         options.add_experimental_option("prefs", prefs)
-        service = Service(EdgeChromiumDriverManager().install())  # ✅ Auto-installs the right Edge driver
-        self.driver = webdriver.Edge(service=service, options=options)
+        
+        # ✅ Auto-installs the right ChromeDriver from the internet
+        service = Service(ChromeDriverManager().install())
+        self.driver = webdriver.Chrome(service=service, options=options)
 
         # ✅ LOAD drug terms from .tsv file
         tsv_path = 'https://raw.githubusercontent.com/MariaKlap/Drug-Name-Database/refs/heads/main/drug.target.interaction.tsv'  
@@ -872,7 +872,3 @@ class FInews:
 if __name__ == "__main__":
     scraper = FInews(output_file='FInews.xlsx')
     scraper.start_requests()
-
-if __name__ == "__main__":
-    scraper = FInews(output_file='IE.xlsx')
-    scraper.run()
