@@ -18,6 +18,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import pandas as pd
+from scrapy.crawler import CrawlerProcess
 import re
 
 # Initialize language detection
@@ -1391,6 +1392,9 @@ class InfarmedNewsSpider(scrapy.Spider):
         """Handle request errors gracefully."""
         self.logger.error(f"Request failed: {failure.value}")
 
+
 if __name__ == "__main__":
-    scraper = InfarmedNewsSpider(output_file='IE.xlsx')
-    scraper.run()
+    process = CrawlerProcess()
+    process.crawl(InfarmedNewsSpider) 
+    process.start()
+
